@@ -7,7 +7,7 @@ using Unity.Transforms;
 
 [UpdateAfter(typeof(MoveForwardSystem))]
 [UpdateBefore(typeof(TimedDestroySystem))]
-public class CollisionSystem : JobComponentSystem
+public class CollisionSystem : SystemBase
 {
 	EntityQuery enemyGroup;
 	EntityQuery bulletGroup;
@@ -25,8 +25,8 @@ public class CollisionSystem : JobComponentSystem
 	{
 		public float radius;
 
-		public ArchetypeChunkComponentType<Health> healthType;
-		[ReadOnly] public ArchetypeChunkComponentType<Translation> translationType;
+		public ComponentTypeHandle<Health> healthType;
+		[ReadOnly] public ComponentTypeHandle<Translation> translationType;
 
 		[DeallocateOnJobCompletion]
 		[ReadOnly] public NativeArray<Translation> transToTestAgainst;
@@ -62,10 +62,10 @@ public class CollisionSystem : JobComponentSystem
 		}
 	}
 
-	protected override JobHandle OnUpdate(JobHandle inputDependencies)
+	protected override void OnUpdate()
 	{
-		var healthType = GetArchetypeChunkComponentType<Health>(false);
-		var translationType = GetArchetypeChunkComponentType<Translation>(true);
+		var healthType = GetComponentTypeHandle<Health>(false);
+		var translationType = GetComponentTypeHandle<Translation>(true);
 
 		float enemyRadius = Settings.EnemyCollisionRadius;
 		float playerRadius = Settings.PlayerCollisionRadius;
@@ -78,10 +78,10 @@ public class CollisionSystem : JobComponentSystem
 			transToTestAgainst = bulletGroup.ToComponentDataArray<Translation>(Allocator.TempJob)
 		};
 
-		JobHandle jobHandle = jobEvB.Schedule(enemyGroup, inputDependencies);
+		Dependency = jobEvB.Schedule(enemyGroup, Dependency);
 
 		if (Settings.IsPlayerDead())
-			return jobHandle;
+			return;
 
 		var jobPvE = new CollisionJob()
 		{
@@ -90,8 +90,8 @@ public class CollisionSystem : JobComponentSystem
 			translationType = translationType,
 			transToTestAgainst = enemyGroup.ToComponentDataArray<Translation>(Allocator.TempJob)
 		};
-
-		return jobPvE.Schedule(playerGroup, jobHandle);
+		Dependency = jobPvE.Schedule(playerGroup, Dependency);
+		return;
 	}
 
 	static bool CheckCollision(float3 posA, float3 posB, float radiusSqr)

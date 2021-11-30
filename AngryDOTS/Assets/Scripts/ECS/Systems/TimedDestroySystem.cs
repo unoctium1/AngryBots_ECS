@@ -19,7 +19,7 @@ public class TimedDestroySystem : SystemBase
     protected override void OnUpdate()
     {
 		float dt = Time.DeltaTime;
-		var ecb = buffer.CreateCommandBuffer().ToConcurrent();
+		var ecb = buffer.CreateCommandBuffer().AsParallelWriter();
 
 		Entities
 			.ForEach(

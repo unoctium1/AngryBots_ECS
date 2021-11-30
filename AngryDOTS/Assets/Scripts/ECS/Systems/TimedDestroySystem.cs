@@ -5,40 +5,35 @@ using UnityEngine;
 
 
 [UpdateAfter(typeof(MoveForwardSystem))]
-public class TimedDestroySystem : JobComponentSystem
+public class TimedDestroySystem : SystemBase
 {
 	EndSimulationEntityCommandBufferSystem buffer;
 
-	protected override void OnCreateManager()
+	protected override void OnCreate()
 	{
-		buffer = World.Active.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+		base.OnCreate();
+		buffer = World
+			.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
 	}
 
-	struct CullingJob : IJobForEachWithEntity<TimeToLive>
-	{
-		public EntityCommandBuffer.Concurrent commands;
-		public float dt;
+    protected override void OnUpdate()
+    {
+		float dt = Time.DeltaTime;
+		var ecb = buffer.CreateCommandBuffer().ToConcurrent();
 
-		public void Execute(Entity entity, int jobIndex, ref TimeToLive timeToLive)
-		{
-			timeToLive.Value -= dt;
-			if (timeToLive.Value <= 0f)
-				commands.DestroyEntity(jobIndex, entity);
-		}
-	}
+		Entities
+			.ForEach(
+			(Entity e, int entityInQueryIndex, ref TimeToLive ttl) =>
+			{
+				ttl.Value -= dt;
+				if (ttl.Value <= 0)
+				{
+					ecb.DestroyEntity(entityInQueryIndex, e);
+				}
+			})
+			.ScheduleParallel();
 
-	protected override JobHandle OnUpdate(JobHandle inputDeps)
-	{
-		var job = new CullingJob
-		{
-			commands = buffer.CreateCommandBuffer().ToConcurrent(),
-			dt = Time.deltaTime
-		};
-
-		var handle = job.Schedule(this, inputDeps);
-		buffer.AddJobHandleForProducer(handle);
-
-		return handle;
-	}
+		buffer.AddJobHandleForProducer(this.Dependency);
+    }
 }
 

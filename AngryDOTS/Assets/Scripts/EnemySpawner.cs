@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using System.Collections.Generic;
+using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -24,8 +25,11 @@ public class EnemySpawner : MonoBehaviour
 	{
 		if (useECS)
 		{
-			manager = World.Active.EntityManager;
-			enemyEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(enemyPrefab, World.Active);
+			manager = World.DefaultGameObjectInjectionWorld.EntityManager;
+			enemyEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(enemyPrefab, new GameObjectConversionSettings
+			{
+				DestinationWorld = World.DefaultGameObjectInjectionWorld
+			});
 		}
 	}
 

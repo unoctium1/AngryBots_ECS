@@ -28,8 +28,11 @@ public class PlayerShooting : MonoBehaviour
 	{
 		if (useECS)
 		{
-			manager = World.Active.EntityManager;
-			bulletEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(bulletPrefab, World.Active);
+			manager = World.DefaultGameObjectInjectionWorld.EntityManager;
+			bulletEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(bulletPrefab, new GameObjectConversionSettings
+			{
+				DestinationWorld = World.DefaultGameObjectInjectionWorld
+			});
 		}
 	}
 
@@ -37,7 +40,7 @@ public class PlayerShooting : MonoBehaviour
 	{
 		timer += Time.deltaTime;
 
-		if (Input.GetButton("Fire1") && timer >= fireRate)
+		if (Input.GetButton("Fire1") && timer >= fireRate && !Settings.IsPlayerDead())
 		{
 			Vector3 rotation = gunBarrel.rotation.eulerAngles;
 			rotation.x = 0f;
